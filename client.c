@@ -166,34 +166,41 @@ int main(int argc, char* argv[])
                 puts(recvBuff);
             }
 
-    } else if (strcmp(cmd, runCmd)==0){
+        } else if (strcmp(cmd, runCmd)==0){
             //not even sure
             send(sockfd,"run progname [args] [-f localfile]",256,0);
-    } else if (strcmp(cmd, listCmd)==0){
+        } else if (strcmp(cmd, listCmd)==0){
             // possibly just check if 1 or 2 args then send full request
-            if (ctr == 2){
-                send(sockfd,sendBuff,256,0);
-                // check if arg is -l
-                // else progname
-            } else if (ctr == 1){
-                //long list a prog
-                send(sockfd,sendBuff,256,0); 
-            } else {
+            if (ctr > 2){
                 printf("Invalid arguments: list [-l] [progname]\n");
+                break;
+            } 
+            send(sockfd, sendBuff, 256, 0);
+            
+            while(1){
+            recv(sockfd, &recvBuff, 256, 0);
+            if (strcmp(recvBuff, "q")==0){
+                    break;
+                }
+            printf("-> %s\n", recvBuff);
+            send(sockfd, "g", 256, 0);
+                
+                
             }
-            send(sockfd,"list [-l] [progname]",256,0);
-    } else if (strcmp(cmd, sysCmd)==0){
+        } else if (strcmp(cmd, sysCmd)==0){
             // Send command straight to server
             // Maybe verify there are no arguements
             send(sockfd,sendBuff,256,0);
             recv(sockfd, &recvBuff, 256, 0);
-            puts(recvBuff);
+            send(sockfd, "ack", 256, 0);
+            printf("System: %s\n", recvBuff);
             recv(sockfd, &recvBuff, 256, 0);
-            puts(recvBuff);
+            send(sockfd, "ack", 256, 0);
+            printf("Version: %s\n", recvBuff);
             recv(sockfd, &recvBuff, 256, 0);
-            puts(recvBuff);
-
-            sleep(1);
+            send(sockfd, "ack", 256, 0);
+            printf("CPU type: %s\n", recvBuff);
+            recv(sockfd, &recvBuff, 256, 0);
         }  else {
             printf("Command not found\n");
     }

@@ -18,10 +18,11 @@ void error(char *msg){
     exit(1);
 }
 
+
+
 void removeDir(char progdir[] ){
     DIR *dir_ptr;
     struct dirent *direntp;
-    char progdirtest[] = "./prog/apex";
     if ((dir_ptr = opendir(progdir)) == NULL){
         fprintf(stderr, "ls: can't open %s\n", progdir);
         } else {
@@ -43,10 +44,7 @@ void removeDir(char progdir[] ){
                         printf("Error: unable to delete the file\n");
                     }
                 }
-                
-                
             }
-            //remove(progdir);
             closedir(dir_ptr);
         }
 }
@@ -134,6 +132,7 @@ int main(){
                     char *arguments[5];
                     //get first token
                     token = strtok(command, " ");
+                    printf("cmd %s\n", token);
                     cmd = token;
                     //args = strtok(command, " ");
                     // while there are more tokens
@@ -145,7 +144,7 @@ int main(){
                         ctr++;
                     }
                     ctr--;
-
+                    printf("cmd %i\n", strcmp(cmd, listCmd));
                     // case statement for any type of string compare
                     if (strcmp(cmd, quitCmd)==0){
                         close(newsockfd);
@@ -278,26 +277,99 @@ int main(){
                         
                         send(newsockfd,"run progname [args] [-f localfile]",256,0);
                     } else if (strcmp(cmd, listCmd)==0){
+
                         DIR *dir_ptr;
                         struct dirent *direntp;
                         char dirname[] = "./prog";
+                        if (ctr == 2){
+                            printf("long lsit in dir %s \n", dirname);
+                            strcat(dirname, "/");
+                            strcat(dirname, arguments[0]);
+                        } else if (strcmp(arguments[ctr - 1], "-l") != 0){
+                            strcat(dirname, "/");
+                            strcat(dirname, arguments[0]);
+                            printf("short lsit prog %s \n", dirname);
+                        } 
+
                         if ((dir_ptr = opendir(dirname)) == NULL){
                             fprintf(stderr, "ls: can't open %s\n", dirname);
                         } else {
                             while ((direntp = readdir(dir_ptr)) != NULL){
-                                printf("%s \n", direntp->d_name);
+                                char filename[50];
+                                char filedir[50];
+                                
+                                strcpy(filename, direntp->d_name);
+                                strcpy(filedir, dirname);
+                                strcat(filedir, "/");
+                                strcat(filedir, filename);
+                                //printf("filedir: %s", filedir);
+
+                                if (strcmp(filename, ".")!=0 && strcmp(filename, "..")!=0){
+                                    if (arguments[0] != NULL && strcmp(arguments[ctr - 1], "-l") == 0){
+                                        struct stat sfile;
+                                        if (stat(filedir, &sfile) == -1){
+                                            printf("Error Occurred\n");
+                                        }
+                                        char longlist[100];
+                                        strcpy(longlist, filename);
+                                        strcat(longlist, " ");
+                                        char created[50];
+                                        
+                                        int length = snprintf( NULL, 0, "%d", sfile.st_size );
+                                        char* str = malloc( length + 1 );
+                                        snprintf( str, length + 1, "%i", sfile.st_size );
+                                        char fsize [50];
+                                        strcpy(fsize, str);
+                                        strcat(longlist, fsize);
+                                        
+                                        strcat(longlist, " "); 
+                                        char perms[4];
+                                        if (sfile.st_mode && S_IRUSR){
+                                            perms[0]='r';
+                                        } else {
+                                            perms[0]='-';
+                                        }
+                                        if (sfile.st_mode && S_IWUSR){
+                                            perms[1]='w';
+                                        } else {
+                                            perms[1]='-';
+                                        }
+                                        if (sfile.st_mode && S_IXUSR){
+                                            perms[2]='x';
+                                        } else {
+                                            perms[2]='-';
+                                        }
+                                        perms[3] = '\0';
+                                        strcat(longlist,perms);
+                                        strcat(longlist, " ");
+                                        strcpy(created, ctime(&sfile.st_mtime));
+                                        strcat(longlist, created);
+                                        send(newsockfd, longlist, 256, 0);
+                                        recv(newsockfd, &recvBuff, 256, 0);
+                                        
+                                    }else {
+                                        printf("filename: %s\n", filename);
+                                        send(newsockfd, filename, 256, 0);
+                                        recv(newsockfd, &recvBuff, 256, 0);
+                                    } 
+                                } 
+                                
                             }
+                            send(newsockfd, "q", 256,0);
                             closedir(dir_ptr);
                         }
-                        send(newsockfd,"list [-l] [progname]",256,0);
                     } else if (strcmp(cmd, sysCmd)==0){
                         struct utsname unameData;
                         
                         uname(&unameData);
                         printf("System: %s \nVersion: %s\nMachine harware: %s\nRelease: %s\n", unameData.sysname, unameData.version, unameData.machine, unameData.release);
                         send(newsockfd, unameData.sysname, sizeof(unameData.sysname),0);
-                        send(newsockfd, unameData.machine, sizeof(unameData.machine),0);
-                        send(newsockfd, unameData.release, sizeof(unameData.release),0);
+                        recv(newsockfd, &recvBuff, 256, 0);
+                        send(newsockfd, unameData.machine, sizeof(unameData.release),0);
+                        recv(newsockfd, &recvBuff, 256, 0);
+                        send(newsockfd, unameData.release, sizeof(unameData.machine),0);
+                        recv(newsockfd, &recvBuff, 256, 0);
+                        send(newsockfd, "ack", 256, 0);
     
     
                         //send(newsockfd,"probably unix",256,0);
