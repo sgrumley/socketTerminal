@@ -18,8 +18,6 @@ void error(char *msg){
     exit(1);
 }
 
-
-
 void removeDir(char progdir[] ){
     DIR *dir_ptr;
     struct dirent *direntp;
@@ -274,8 +272,21 @@ int main(){
                         }
 
                     } else if (strcmp(cmd, runCmd)==0){
+                        system("gcc -o test test.c");
+                        char ps[100];
+                        char p;
+                        int count=0;
+                        FILE* proc = popen("./test.exe", "r");
+                        while((p=fgetc(proc))!=EOF){
+                            ps[count] = p;
+                            count++;
+                        }
+                        printf("final output: %s ",ps);
+                        send(newsockfd, ps, 256, 0);
+                        pclose(proc);
                         
-                        send(newsockfd,"run progname [args] [-f localfile]",256,0);
+                        
+
                     } else if (strcmp(cmd, listCmd)==0){
 
                         DIR *dir_ptr;
@@ -290,6 +301,8 @@ int main(){
                             strcat(dirname, arguments[0]);
                             printf("short lsit prog %s \n", dirname);
                         } 
+
+                        printf("dirname %s",dirname);
 
                         if ((dir_ptr = opendir(dirname)) == NULL){
                             fprintf(stderr, "ls: can't open %s\n", dirname);

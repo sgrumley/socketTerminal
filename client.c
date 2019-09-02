@@ -167,8 +167,9 @@ int main(int argc, char* argv[])
             }
 
         } else if (strcmp(cmd, runCmd)==0){
-            //not even sure
-            send(sockfd,"run progname [args] [-f localfile]",256,0);
+            send(sockfd, sendBuff,256,0);
+            recv(sockfd, &recvBuff, 256, 0);
+            puts(recvBuff);
         } else if (strcmp(cmd, listCmd)==0){
             // possibly just check if 1 or 2 args then send full request
             if (ctr > 2){
